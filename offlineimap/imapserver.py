@@ -586,6 +586,11 @@ class IMAPServer:
                         af=self.af,
                     )
 
+                # If 'ID' extension is used by the server, we should use it
+                # We didn't send any info.
+                if 'ID' in imapobj.capabilities:
+                    imapobj.id({"name": "IMAPClient", "version": "2.1.0"})
+
                 if not self.preauth_tunnel:
                     try:
                         self.__authn_helper(imapobj)
