@@ -141,7 +141,21 @@ class IMAPRepository(BaseRepository):
         if self.config.has_option(self.getsection(), 'remotehosteval'):
             host = self.getconf('remotehosteval')
             try:
-                host = self.localeval.eval(host)
+                l_host = self.localeval.eval(host)
+
+                # We need a str host
+                if isinstance(l_host, bytes):
+                    return l_host.decode(encoding='utf-8')
+                elif isinstance(l_host, str):
+                    return l_host
+
+                # If is not bytes or str, we have a problem
+                raise OfflineImapError("Could not get a right host format for"
+                                       " repository %s. Type found: %s. "
+                                       "Please, open a bug." %
+                                       (self.name, type(l_host)),
+                                       OfflineImapError.ERROR.FOLDER)
+
             except Exception as exc:
                 raise OfflineImapError(
                     "remotehosteval option for repository "
@@ -307,15 +321,13 @@ class IMAPRepository(BaseRepository):
     def getsslcacertfile(self):
         """Determines CA bundle.
 
-        Returns path to the CA bundle.  It is explicitely specified or
-        requested via "OS-DEFAULT" value (and we will search known
-        locations for the current OS and distribution). If it is not
-        specified, we will search it in the known locations.
+        Returns path to the CA bundle.  It is either explicitely specified
+        or requested via "OS-DEFAULT" value (and we will search known
+        locations for the current OS and distribution).
 
-        If search route, via "OS-DEFAULT" or because is not specified,
-        yields nothing, we will throw an exception to make our callers
-        distinguish between not specified value and non-existent
-        default CA bundle.
+        If search via "OS-DEFAULT" route yields nothing, we will throw an
+        exception to make our callers distinguish between not specified
+        value and non-existent default CA bundle.
 
         It is also an error to specify non-existent file via configuration:
         it will error out later, but, perhaps, with less verbose explanation,
@@ -326,10 +338,7 @@ class IMAPRepository(BaseRepository):
         xforms = [os.path.expanduser, os.path.expandvars, os.path.abspath]
         cacertfile = self.getconf_xform('sslcacertfile', xforms, None)
         # Can't use above cacertfile because of abspath.
-        conf_sslacertfile = self.getconf('sslcacertfile', None)
-        if conf_sslacertfile == "OS-DEFAULT" or \
-                conf_sslacertfile is None or \
-                conf_sslacertfile == '':
+        if self.getconf('sslcacertfile', None) == "OS-DEFAULT":
             cacertfile = get_os_sslcertfile()
             if cacertfile is None:
                 searchpath = get_os_sslcertfile_searchpath()
