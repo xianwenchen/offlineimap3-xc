@@ -95,9 +95,6 @@ class IMAPServer:
             self.__verifycert = None  # Disable cert verification.
             # This way of working sucks hard...
         self.fingerprint = repos.get_ssl_fingerprint()
-        if self.fingerprint is not None:
-            self.__verifycert = None  # if we have a cert fingerprint
-            # we do not require verfication via CA
         self.tlslevel = repos.gettlslevel()
         self.sslversion = repos.getsslversion()
         self.starttls = repos.getstarttls()
@@ -587,9 +584,9 @@ class IMAPServer:
                     )
 
                 # If 'ID' extension is used by the server, we should use it
-                # We didn't send any info.
                 if 'ID' in imapobj.capabilities:
-                    imapobj.id({"name": "IMAPClient", "version": "2.1.0"})
+                    l_str = '("name" "OfflineIMAP" "version" "{}")'.format(offlineimap.__version__)
+                    imapobj.id(l_str)
 
                 if not self.preauth_tunnel:
                     try:
